@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1]
+_30 Jul 2025_
+
+### Added:
+- Additional logging and debug messages to aid troubleshooting.
+
+### Changed:
+- Minor improvements to the deployment bash script.
+
+### Fixed
+- Resolved issues flagged by SonarCloud, improving code quality.
+
 ## [0.4.0]
 _29 May 2025_
 
