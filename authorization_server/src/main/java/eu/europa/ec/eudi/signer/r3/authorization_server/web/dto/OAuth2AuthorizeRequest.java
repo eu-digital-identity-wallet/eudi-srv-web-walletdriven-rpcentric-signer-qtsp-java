@@ -16,13 +16,16 @@
 
 package eu.europa.ec.eudi.signer.r3.authorization_server.web.dto;
 
+import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2CustomParameterNames;
+import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2ScopesNames;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationResponseType;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 
@@ -214,66 +217,36 @@ public class OAuth2AuthorizeRequest {
 
     public static OAuth2AuthorizeRequest from(HttpServletRequest request) throws IllegalArgumentException{
         OAuth2AuthorizeRequest authRequest = new OAuth2AuthorizeRequest();
-        Map<String, String[]> parameters = getParametersFromQueryOrForm(request);
+        Map<String, String[]> parameters = request.getParameterMap();
         if (parameters == null)
             throw new IllegalArgumentException("No parameters were received for the OAuth2 /authorize request.");
 
-        authRequest.setResponse_type(getRequiredParameter(parameters, "response_type"));
-        authRequest.setClient_id(getRequiredParameter(parameters, "client_id"));
-        authRequest.setRedirect_uri(getFirst(parameters, "redirect_uri"));
-        authRequest.setScope(getFirst(parameters, "scope"));
-        authRequest.setAuthorization_details(getFirst(parameters, "authorization_details"));
+        authRequest.setResponse_type(getRequiredParameter(parameters, OAuth2ParameterNames.RESPONSE_TYPE));
+        authRequest.setClient_id(getRequiredParameter(parameters, OAuth2ParameterNames.CLIENT_ID));
+        authRequest.setRedirect_uri(getFirst(parameters, OAuth2ParameterNames.REDIRECT_URI));
+        authRequest.setState(getFirst(parameters, OAuth2ParameterNames.STATE));
+        authRequest.setScope(getFirst(parameters, OAuth2ParameterNames.SCOPE));
+        authRequest.setAuthorization_details(getFirst(parameters, OAuth2CustomParameterNames.AUTHORIZATION_DETAILS));
 
         // neither the scope nor the authorization_details are required, if neither is present the scope defaults to "service"
         if (authRequest.getScope() == null && authRequest.getAuthorization_details() == null)
-            authRequest.setScope("service");
+            authRequest.setScope(OAuth2ScopesNames.SERVICE);
+        if(authRequest.getScope() == null && authRequest.getAuthorization_details() != null)
+            authRequest.setScope(OAuth2ScopesNames.CREDENTIAL);
 
-        authRequest.setCode_challenge(getRequiredParameter(parameters, "code_challenge"));
-        authRequest.setCode_challenge_method(getFirst(parameters, "code_challenge_method"));
-        authRequest.setState(getFirst(parameters, "state"));
-        authRequest.setRequest_uri(getFirst(parameters, "request_uri"));
-        authRequest.setLang(getFirst(parameters, "lang"));
-        authRequest.setCredentialID(getFirst(parameters, "credentialID"));
-        authRequest.setSignatureQualifier(getFirst(parameters, "signatureQualifier"));
-        authRequest.setNumSignatures(getFirst(parameters, "numSignatures"));
-        authRequest.setHashes(getFirst(parameters, "hashes"));
-        authRequest.setHashAlgorithmOID(getFirst(parameters, "hashAlgorithmOID"));
-        authRequest.setDescription(getFirst(parameters,"description"));
-        authRequest.setAccount_token(getFirst(parameters, "account_token"));
-        authRequest.setClientData(getFirst(parameters, "clientData"));
+        authRequest.setCode_challenge(getRequiredParameter(parameters, PkceParameterNames.CODE_CHALLENGE));
+        authRequest.setCode_challenge_method(getFirst(parameters, PkceParameterNames.CODE_CHALLENGE_METHOD));
+        authRequest.setRequest_uri(getFirst(parameters, OAuth2CustomParameterNames.REQUEST_URI));
+        authRequest.setLang(getFirst(parameters, OAuth2CustomParameterNames.LANG));
+        authRequest.setCredentialID(getFirst(parameters, OAuth2CustomParameterNames.CREDENTIAL_ID));
+        authRequest.setSignatureQualifier(getFirst(parameters, OAuth2CustomParameterNames.SIGNATURE_QUALIFIER));
+        authRequest.setNumSignatures(getFirst(parameters, OAuth2CustomParameterNames.NUM_SIGNATURES));
+        authRequest.setHashes(getFirst(parameters, OAuth2CustomParameterNames.HASHES));
+        authRequest.setHashAlgorithmOID(getFirst(parameters, OAuth2CustomParameterNames.HASH_ALGORITHM_OID));
+        authRequest.setDescription(getFirst(parameters,OAuth2CustomParameterNames.DESCRIPTION));
+        authRequest.setAccount_token(getFirst(parameters, OAuth2CustomParameterNames.ACCOUNT_TOKEN));
+        authRequest.setClientData(getFirst(parameters, OAuth2CustomParameterNames.CLIENT_DATA));
         return authRequest;
-    }
-
-    private static Map<String, String[]> getParametersFromQueryOrForm(HttpServletRequest request){
-        String query = request.getQueryString();
-        if(query == null)
-            return request.getParameterMap();
-
-        String[] pares = query.split("&");
-        Map<String, String[]> parameters = new HashMap<>();
-        for (String pare : pares) {
-            String[] nameAndValue = pare.split("=", 2);
-            String key = nameAndValue[0];
-            String value = nameAndValue[1];
-            if(Objects.equals(key, "redirect_uri") || Objects.equals(key, "authorization_details") ||
-                  Objects.equals(key, "request_uri") || Objects.equals(key, "credentialID")){
-                value = decode(value);
-            }
-
-            if(parameters.containsKey(key)){
-                String[] oldValues = parameters.get(key);
-                String[] newValues = new String[oldValues.length + 1];
-                System.arraycopy(oldValues, 0, newValues, 0, oldValues.length); // copy old values
-                newValues[oldValues.length] = value;
-                parameters.put(key, newValues);
-            }
-            else parameters.put(key, new String[]{value});
-        }
-        return parameters;
-    }
-
-    private static String decode(String value) {
-        return value == null ? null : URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
     private static String getFirst(Map<String, String[]> params, String key) {
@@ -295,36 +268,37 @@ public class OAuth2AuthorizeRequest {
     }
 
     public static RequestMatcher requestMatcherWithoutScopeOrAuthorizationDetails(){
+
         return request ->
-              request.getParameter("client_id") != null
-                    && Objects.equals(request.getParameter("response_type"), "code")
-                    && request.getParameter("scope") == null
-                    && request.getParameter("authorization_details") == null
-                    && request.getParameter("code_challenge") != null;
+              request.getParameter(OAuth2ParameterNames.CLIENT_ID) != null
+                    && Objects.equals(request.getParameter(OAuth2ParameterNames.RESPONSE_TYPE), OAuth2AuthorizationResponseType.CODE.getValue())
+                    && request.getParameter(OAuth2ParameterNames.SCOPE) == null
+                    && request.getParameter(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS) == null
+                    && request.getParameter(PkceParameterNames.CODE_CHALLENGE) != null;
     }
 
     public static RequestMatcher requestMatcherForService(){
         return request ->
-              request.getParameter("client_id") != null
-              && Objects.equals(request.getParameter("response_type"), "code")
-              && Objects.equals(request.getParameter("scope"), "service")
-              && request.getParameter("code_challenge") != null;
+              request.getParameter(OAuth2ParameterNames.CLIENT_ID) != null
+              && Objects.equals(request.getParameter(OAuth2ParameterNames.RESPONSE_TYPE), OAuth2AuthorizationResponseType.CODE.getValue())
+              && Objects.equals(request.getParameter(OAuth2ParameterNames.SCOPE), OAuth2ScopesNames.SERVICE)
+              && request.getParameter(PkceParameterNames.CODE_CHALLENGE) != null;
     }
 
     public static RequestMatcher requestMatcherForCredential(){
         return request ->
-              request.getParameter("client_id") != null &&
-                    Objects.equals(request.getParameter("response_type"), "code") &&
+              request.getParameter(OAuth2ParameterNames.CLIENT_ID) != null &&
+                    Objects.equals(request.getParameter(OAuth2ParameterNames.RESPONSE_TYPE), OAuth2AuthorizationResponseType.CODE.getValue()) &&
                     (
                           (
-                                Objects.equals(request.getParameter("scope"), "credential")
-                                && (request.getParameter("credentialID") != null || request.getParameter("signatureQualifier") != null)
-                                && request.getParameter("hashes") != null
-                                && request.getParameter("hashAlgorithmOID") != null
-                                && request.getParameter("numSignatures") != null
+                                Objects.equals(request.getParameter(OAuth2ParameterNames.SCOPE), OAuth2ScopesNames.CREDENTIAL)
+                                && (request.getParameter(OAuth2CustomParameterNames.CREDENTIAL_ID) != null || request.getParameter(OAuth2CustomParameterNames.SIGNATURE_QUALIFIER) != null)
+                                && request.getParameter(OAuth2CustomParameterNames.HASHES) != null
+                                && request.getParameter(OAuth2CustomParameterNames.HASH_ALGORITHM_OID) != null
+                                && request.getParameter(OAuth2CustomParameterNames.NUM_SIGNATURES) != null
                           )
-                          || request.getParameter("authorization_details") != null
+                          || request.getParameter(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS) != null
                     )
-                    && request.getParameter("code_challenge") != null;
+                    && request.getParameter(PkceParameterNames.CODE_CHALLENGE) != null;
     }
 }

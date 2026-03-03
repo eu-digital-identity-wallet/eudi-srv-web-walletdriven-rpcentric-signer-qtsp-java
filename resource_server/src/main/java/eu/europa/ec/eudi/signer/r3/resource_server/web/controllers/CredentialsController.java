@@ -18,6 +18,7 @@ package eu.europa.ec.eudi.signer.r3.resource_server.web.controllers;
 
 import eu.europa.ec.eudi.signer.r3.common_tools.utils.CryptoProperties;
 import eu.europa.ec.eudi.signer.r3.common_tools.utils.CryptoUtils;
+import eu.europa.ec.eudi.signer.r3.common_tools.utils.JWTCustomClaimNames;
 import eu.europa.ec.eudi.signer.r3.resource_server.config.CredentialsConfig;
 import eu.europa.ec.eudi.signer.r3.resource_server.model.CredentialsService;
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsListRequest;
@@ -70,16 +71,18 @@ public class CredentialsController {
 
         if(userHash == null) userMissingError();
 
-        if(!claims.containsKey("givenName")|| !claims.containsKey("surname") || !claims.containsKey("issuingCountry")){
+        if(!claims.containsKey(JWTCustomClaimNames.GIVEN_NAME)||
+              !claims.containsKey(JWTCustomClaimNames.SURNAME) ||
+              !claims.containsKey(JWTCustomClaimNames.ISSUING_COUNTRY)){
             logger.error("Missing required claims from Authentication Header.");
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing required claims from Authentication Header.");
         }
 
-        String givenName = claims.get("givenName").toString();
+        String givenName = claims.get(JWTCustomClaimNames.GIVEN_NAME).toString();
         logger.info("givenName: {}", givenName);
-        String surname = claims.get("surname").toString();
+        String surname = claims.get(JWTCustomClaimNames.SURNAME).toString();
         logger.info("surname: {}", surname);
-        String issuingCountry = claims.get("issuingCountry").toString();
+        String issuingCountry = claims.get(JWTCustomClaimNames.ISSUING_COUNTRY).toString();
         logger.info("issuingCountry: {}", issuingCountry);
 
         try {

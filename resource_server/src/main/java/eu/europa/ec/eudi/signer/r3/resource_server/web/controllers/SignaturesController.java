@@ -16,6 +16,7 @@
 
 package eu.europa.ec.eudi.signer.r3.resource_server.web.controllers;
 
+import eu.europa.ec.eudi.signer.r3.common_tools.utils.JWTCustomClaimNames;
 import eu.europa.ec.eudi.signer.r3.resource_server.model.SignaturesService;
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.SignaturesSignHashRequest;
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.SignaturesSignHashResponse;
@@ -72,18 +73,23 @@ public class SignaturesController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_request: Invalid or missing user identifier.");
         }
 
-        if(!claims.containsKey("credentialID") || !claims.containsKey("numSignatures") || !claims.containsKey("hashAlgorithmOID") || !claims.containsKey("hashes")){
-            logger.error("Missing required claims from Authentication Header. Present CredentialID? {}; NumSignatures? {}; HashAlgorithmOID? {}; Hashes? {}", claims.containsKey("credentialID"), claims.containsKey("numSignatures"), claims.containsKey("hashAlgorithmOID"), claims.containsKey("hashes"));
+        if(!claims.containsKey(JWTCustomClaimNames.CREDENTIAL_ID) ||
+              !claims.containsKey(JWTCustomClaimNames.NUM_SIGNATURES) ||
+              !claims.containsKey(JWTCustomClaimNames.HASH_ALGORITHM_OID) ||
+              !claims.containsKey(JWTCustomClaimNames.HASHES)){
+            logger.error("Missing required claims from Authentication Header. Present CredentialID? {}; NumSignatures? {}; HashAlgorithmOID? {}; Hashes? {}",
+                  claims.containsKey(JWTCustomClaimNames.CREDENTIAL_ID), claims.containsKey(JWTCustomClaimNames.NUM_SIGNATURES),
+                  claims.containsKey(JWTCustomClaimNames.HASH_ALGORITHM_OID), claims.containsKey(JWTCustomClaimNames.HASHES));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing required claims from Authentication Header.");
         }
 
-        String credentialIDAuthorized = claims.get("credentialID").toString();
+        String credentialIDAuthorized = claims.get(JWTCustomClaimNames.CREDENTIAL_ID).toString();
         logger.debug("credentialIDAuthorized: {}", credentialIDAuthorized);
-        int numSignaturesAuthorized = Integer.parseInt(claims.get("numSignatures").toString());
+        int numSignaturesAuthorized = Integer.parseInt(claims.get(JWTCustomClaimNames.NUM_SIGNATURES).toString());
         logger.debug("numSignaturesAuthorized: {}", numSignaturesAuthorized);
-        String hashAlgorithmOIDAuthorized = claims.get("hashAlgorithmOID").toString();
+        String hashAlgorithmOIDAuthorized = claims.get(JWTCustomClaimNames.HASH_ALGORITHM_OID).toString();
         logger.debug("hashAlgorithmOIDAuthorized: {}", hashAlgorithmOIDAuthorized);
-        String hashesString = claims.get("hashes").toString();
+        String hashesString = claims.get(JWTCustomClaimNames.HASHES).toString();
         logger.debug("hashesString: {}", hashesString);
         String[] hashesAuthorizedArray = hashesString.split(",");
         Arrays.sort(hashesAuthorizedArray);

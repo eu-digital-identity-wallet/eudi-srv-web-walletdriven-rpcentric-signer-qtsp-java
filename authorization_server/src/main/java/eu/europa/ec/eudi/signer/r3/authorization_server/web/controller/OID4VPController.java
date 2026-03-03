@@ -7,6 +7,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import eu.europa.ec.eudi.signer.r3.authorization_server.config.ServiceURLConfig;
 import eu.europa.ec.eudi.signer.r3.authorization_server.model.oid4vp.VerifierClient;
 import eu.europa.ec.eudi.signer.r3.authorization_server.model.oid4vp.variables.SessionUrlRelationList;
+import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2ScopesNames;
 import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.token.CommonTokenSetting;
 import eu.europa.ec.eudi.signer.r3.common_tools.utils.WebUtils;
 import org.slf4j.Logger;
@@ -65,11 +66,11 @@ public class OID4VPController {
 			Map<String, String> queryValues = this.tokenSetting.getQueryValues(url);
 			String scope = this.tokenSetting.getScopeFromOAuth2Request(queryValues);
 
-			if(scope.equals("credential")) {
+			if(scope.equals(OAuth2ScopesNames.CREDENTIAL)) {
 				model.addAttribute("reason", "use your keys to sign your document.");
 				model.addAttribute("resources", "the chosen signing key to sign your document.");
 			}
-			else if (scope.equals("service")){
+			else if (scope.equals(OAuth2ScopesNames.SERVICE)){
 				model.addAttribute("reason", "your account.");
 				model.addAttribute("resources", "your list of certificates and, " +
 					  "if no certificate exists, you will grant access to issue a new certificate and a new key pair");
