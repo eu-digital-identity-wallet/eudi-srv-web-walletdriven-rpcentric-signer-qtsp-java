@@ -66,24 +66,27 @@ public class AuthorizationRequestProvider implements AuthenticationProvider {
 
     private static class OAuth2AuthorizationCodeGenerator implements OAuth2TokenGenerator<OAuth2AuthorizationCode> {
 
-        private final StringKeyGenerator authorizationCodeGenerator = new Base64StringKeyGenerator(Base64.getUrlEncoder().withoutPadding(), 96);
+        private final StringKeyGenerator authorizationCodeGenerator = new Base64StringKeyGenerator(
+                Base64.getUrlEncoder().withoutPadding(), 96);
 
         @Nullable
         @Override
         public OAuth2AuthorizationCode generate(OAuth2TokenContext context) {
-            if (context.getTokenType() == null || !OAuth2ParameterNames.CODE.equals(context.getTokenType().getValue())) {
+            if (context.getTokenType() == null
+                    || !OAuth2ParameterNames.CODE.equals(context.getTokenType().getValue())) {
                 return null;
             }
             Instant issuedAt = Instant.now();
-            Instant expiresAt = issuedAt.plus(context.getRegisteredClient().getTokenSettings().getAuthorizationCodeTimeToLive());
+            Instant expiresAt = issuedAt
+                    .plus(context.getRegisteredClient().getTokenSettings().getAuthorizationCodeTimeToLive());
             return new OAuth2AuthorizationCode(this.authorizationCodeGenerator.generateKey(), issuedAt, expiresAt);
         }
     }
 
     public AuthorizationRequestProvider(RegisteredClientRepository registeredClientRepository,
-                                        OAuth2AuthorizationService authorizationService,
-                                        ManageOAuth2Authorization manageOAuth2Authorization,
-                                        CredentialsService credentialsService) {
+            OAuth2AuthorizationService authorizationService,
+            ManageOAuth2Authorization manageOAuth2Authorization,
+            CredentialsService credentialsService) {
         this.registeredClientRepository = registeredClientRepository;
         this.authorizationService = authorizationService;
         this.manageOAuth2Authorization = manageOAuth2Authorization;
@@ -98,12 +101,15 @@ public class AuthorizationRequestProvider implements AuthenticationProvider {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         OAuth2AuthorizationCodeRequestAuthenticationToken oAuth2AuthorizeRequestToken = (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
-        logger.info("Authenticating an Authorization Code Request for the clientID: {}.", oAuth2AuthorizeRequestToken.getClientId());
+        logger.info("Authenticating an Authorization Code Request for the clientID: {}.",
+                oAuth2AuthorizeRequestToken.getClientId());
 
         // Found registered client with client_id from oauth2/authorize
-        RegisteredClient registeredClient = this.registeredClientRepository.findByClientId(oAuth2AuthorizeRequestToken.getClientId());
+        RegisteredClient registeredClient = this.registeredClientRepository
+                .findByClientId(oAuth2AuthorizeRequestToken.getClientId());
         if (registeredClient == null) {
-            OAuth2Error error = OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST, "ClientId " + oAuth2AuthorizeRequestToken.getClientId() + " from the request not found.");
+            OAuth2Error error = OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
+                    "ClientId " + oAuth2AuthorizeRequestToken.getClientId() + " from the request not found.");
             throw new OAuth2AuthorizationCodeRequestAuthenticationException(error, oAuth2AuthorizeRequestToken);
         }
 
@@ -112,7 +118,8 @@ public class AuthorizationRequestProvider implements AuthenticationProvider {
 
         // Get redirect_uri from oauth2/authorize or from pre-registered client
         String requestedRedirectUri = oAuth2AuthorizeRequestToken.getRedirectUri();
-        String redirectUri = OAuth2ValidationUtils.resolveRedirectUri(logger, registeredClient, requestedRedirectUri, oAuth2AuthorizeRequestToken);
+        String redirectUri = OAuth2ValidationUtils.resolveRedirectUri(logger, registeredClient, requestedRedirectUri,
+                oAuth2AuthorizeRequestToken);
 
         // Get requested scopes in oauth2/authorize
         Set<String> requestedScopes = resolveAndValidateScopes(registeredClient, oAuth2AuthorizeRequestToken);
@@ -120,98 +127,125 @@ public class AuthorizationRequestProvider implements AuthenticationProvider {
         // Validates if PKCE parameters are present and supported
         OAuth2ValidationUtils.validatePKCE(logger, oAuth2AuthorizeRequestToken);
 
-        // Verifies if the Authorization Details in the oauth2/authorize request is valid
-        String authorizationDetails = (String) oAuth2AuthorizeRequestToken.getAdditionalParameters().get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS);
-        if(authorizationDetails != null) OAuth2ValidationUtils.isAuthorizationDetailsValid(logger, authorizationDetails, oAuth2AuthorizeRequestToken);
+        // Verifies if the Authorization Details in the oauth2/authorize request is
+        // valid
+        String authorizationDetails = (String) oAuth2AuthorizeRequestToken.getAdditionalParameters()
+                .get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS);
+        if (authorizationDetails != null)
+            OAuth2ValidationUtils.isAuthorizationDetailsValid(logger, authorizationDetails,
+                    oAuth2AuthorizeRequestToken);
 
-        // After verifying the request is valid, ensures the resource owner is authenticated
+        // After verifying the request is valid, ensures the resource owner is
+        // authenticated
         Authentication principal = (Authentication) oAuth2AuthorizeRequestToken.getPrincipal();
         if (!isPrincipalAuthenticated(principal)) {
             logger.warn("Did not authenticate authorizationCode request since principal not authenticated");
             return oAuth2AuthorizeRequestToken;
         }
 
-        // Update additional parameters with credential id if signature qualifier is used
+        // Update additional parameters with credential id if signature qualifier is
+        // used
         Map<String, Object> additionalParameters = oAuth2AuthorizeRequestToken.getAdditionalParameters();
-        if(oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL))
-            OAuth2ValidationUtils.addCredentialIdFromSignatureQualifier(logger, credentialsService, principal, additionalParameters);
+        if (oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL))
+            OAuth2ValidationUtils.addCredentialIdFromSignatureQualifier(logger, credentialsService, principal,
+                    additionalParameters);
+
+        // For credential_creation and credential_delete, no credential-id resolution
+        // needed —
+        // those flows create or remove the credential rather than signing with an
+        // existing one.
+        if (oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL_CREATION)) {
+            logger.info("Processing credential_creation authorization request.");
+        }
+        if (oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL_DELETE)) {
+            logger.info("Processing credential_delete authorization request.");
+        }
 
         // Remove previous oauth2/authorize request to keep the database clean
         this.manageOAuth2Authorization.removePreviousOAuth2AuthorizationOfUser(principal.getName(), requestedScopes);
 
-        // Generates all objects with authorization and that will be required for oauth2/token
+        // Generates all objects with authorization and that will be required for
+        // oauth2/token
         OAuth2AuthorizationRequest oAuth2AuthorizeRequest = OAuth2AuthorizationRequest.authorizationCode()
-              .authorizationUri(oAuth2AuthorizeRequestToken.getAuthorizationUri())
-              .clientId(registeredClient.getClientId())
-              .redirectUri(redirectUri)
-              .scopes(requestedScopes)
-              .state(oAuth2AuthorizeRequestToken.getState())
-              .additionalParameters(additionalParameters)
-              .build();
+                .authorizationUri(oAuth2AuthorizeRequestToken.getAuthorizationUri())
+                .clientId(registeredClient.getClientId())
+                .redirectUri(redirectUri)
+                .scopes(requestedScopes)
+                .state(oAuth2AuthorizeRequestToken.getState())
+                .additionalParameters(additionalParameters)
+                .build();
         logger.info("Generated a representation of an OAuth2.0 Authorization Request.");
 
         DefaultOAuth2TokenContext.Builder tokenContextBuilder = DefaultOAuth2TokenContext.builder()
-              .registeredClient(registeredClient)
-              .principal(principal)
-              .authorizationServerContext(AuthorizationServerContextHolder.getContext())
-              .tokenType(new OAuth2TokenType(OAuth2ParameterNames.CODE))
-              .authorizedScopes(requestedScopes)
-              .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-              .authorizationGrant(oAuth2AuthorizeRequestToken);
+                .registeredClient(registeredClient)
+                .principal(principal)
+                .authorizationServerContext(AuthorizationServerContextHolder.getContext())
+                .tokenType(new OAuth2TokenType(OAuth2ParameterNames.CODE))
+                .authorizedScopes(requestedScopes)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrant(oAuth2AuthorizeRequestToken);
         OAuth2TokenContext tokenContext = tokenContextBuilder.build();
         OAuth2AuthorizationCode authorizationCode = this.authorizationCodeGenerator.generate(tokenContext);
         if (authorizationCode == null)
             throw new OAuth2AuthorizationCodeRequestAuthenticationException(
-                  OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.SERVER_ERROR,
-                        "The token generator failed to generate the authorization code."), null);
+                    OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.SERVER_ERROR,
+                            "The token generator failed to generate the authorization code."),
+                    null);
         logger.info("Generated OAuth2AuthorizationCode.");
 
         OAuth2Authorization authorization = OAuth2Authorization.withRegisteredClient(registeredClient)
-              .principalName(principal.getName())
-              .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-              .attribute(Principal.class.getName(), principal)
-              .attribute(OAuth2AuthorizationRequest.class.getName(), oAuth2AuthorizeRequest)
-              .authorizedScopes(requestedScopes)
-              .token(authorizationCode)
-              .build();
+                .principalName(principal.getName())
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .attribute(Principal.class.getName(), principal)
+                .attribute(OAuth2AuthorizationRequest.class.getName(), oAuth2AuthorizeRequest)
+                .authorizedScopes(requestedScopes)
+                .token(authorizationCode)
+                .build();
         logger.info("Generated representation of an OAuth2.0 Authorization.");
         this.authorizationService.save(authorization);
 
         return new OAuth2AuthorizationCodeRequestAuthenticationToken(
-              oAuth2AuthorizeRequest.getAuthorizationUri(),
-              registeredClient.getClientId(),
-              principal,
-              authorizationCode,
-              redirectUri,
-              oAuth2AuthorizeRequest.getState(),
-              requestedScopes);
+                oAuth2AuthorizeRequest.getAuthorizationUri(),
+                registeredClient.getClientId(),
+                principal,
+                authorizationCode,
+                redirectUri,
+                oAuth2AuthorizeRequest.getState(),
+                requestedScopes);
     }
 
-    // This functions checks if the grant_type 'authorization_code' is supported by pre-registered client
-    private void isAuthorizationCodeSupported(RegisteredClient registeredClient, OAuth2AuthorizationCodeRequestAuthenticationToken token){
+    // This functions checks if the grant_type 'authorization_code' is supported by
+    // pre-registered client
+    private void isAuthorizationCodeSupported(RegisteredClient registeredClient,
+            OAuth2AuthorizationCodeRequestAuthenticationToken token) {
         if (!registeredClient.getAuthorizationGrantTypes().contains(AuthorizationGrantType.AUTHORIZATION_CODE)) {
-            OAuth2Error error = OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST, "Request grant_type 'authorization_code' is not allowed for the registered client.");
+            OAuth2Error error = OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
+                    "Request grant_type 'authorization_code' is not allowed for the registered client.");
             throw new OAuth2AuthorizationCodeRequestAuthenticationException(error, token);
         }
     }
 
     // Checks if scopes are defined in oauth2/authorize and if they are supported
-    private Set<String> resolveAndValidateScopes(RegisteredClient registeredClient, OAuth2AuthorizationCodeRequestAuthenticationToken authenticationToken){
+    private Set<String> resolveAndValidateScopes(RegisteredClient registeredClient,
+            OAuth2AuthorizationCodeRequestAuthenticationToken authenticationToken) {
         Set<String> requestedScopes = authenticationToken.getScopes();
-        if(CollectionUtils.isEmpty(requestedScopes))
+        if (CollectionUtils.isEmpty(requestedScopes))
             throw new OAuth2AuthorizationCodeRequestAuthenticationException(
-                  OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
-                        "The 'scope' parameter is missing."), authenticationToken);
+                    OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
+                            "The 'scope' parameter is missing."),
+                    authenticationToken);
 
-        if(!registeredClient.getScopes().containsAll(requestedScopes)) {
+        if (!registeredClient.getScopes().containsAll(requestedScopes)) {
             throw new OAuth2AuthorizationCodeRequestAuthenticationException(
-                  OAuth2ValidationUtils.getOAuth2Error(logger,OAuth2ErrorCodes.INVALID_SCOPE, "The scope requested is not supported."),
-                  authenticationToken);
+                    OAuth2ValidationUtils.getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_SCOPE,
+                            "The scope requested is not supported."),
+                    authenticationToken);
         }
         return requestedScopes;
     }
 
     private static boolean isPrincipalAuthenticated(Authentication principal) {
-        return principal != null && !AnonymousAuthenticationToken.class.isAssignableFrom(principal.getClass()) && principal.isAuthenticated();
+        return principal != null && !AnonymousAuthenticationToken.class.isAssignableFrom(principal.getClass())
+                && principal.isAuthenticated();
     }
 }
