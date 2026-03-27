@@ -40,23 +40,18 @@ public class WebSecurity {
             @Bean
             SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                   http
-                              .csrf(AbstractHttpConfigurer::disable)
-                              .authorizeHttpRequests(authorize -> authorize
-                                          .requestMatchers("/swagger-ui/**").permitAll()
-                                          .requestMatchers("/v3/api-docs/**").permitAll()
-                                          .requestMatchers("/csc/v2/info").permitAll()
-                                          .requestMatchers("/csc/v2/signatures/signHash")
-                                          .hasAuthority("SCOPE_credential")
-                                          .requestMatchers("/csc/v2/credentials/info")
-                                          .hasAnyAuthority("SCOPE_credential", "SCOPE_service")
-                                          .requestMatchers("/csc/v2/credentials/list").hasAuthority("SCOPE_service")
-                                          .requestMatchers("/csc/v2/credentials/create")
-                                          .hasAuthority("SCOPE_credential_creation")
-                                          .requestMatchers("/csc/v2/credentials/delete")
-                                          .hasAuthority("SCOPE_credential_delete")
-                                          .anyRequest().denyAll())
-                              .oauth2ResourceServer(
-                                          oauth2ResourceServer -> oauth2ResourceServer.jwt(Customizer.withDefaults()));
+                        .csrf(AbstractHttpConfigurer::disable)
+                        .authorizeHttpRequests(authorize -> authorize
+                              .requestMatchers("/swagger-ui/**").permitAll()
+                              .requestMatchers("/v3/api-docs/**").permitAll()
+                              .requestMatchers("/csc/v2/info").permitAll()
+                              .requestMatchers("/csc/v2/signatures/signHash").hasAuthority("SCOPE_credential")
+                              .requestMatchers("/csc/v2/credentials/info").hasAnyAuthority("SCOPE_credential", "SCOPE_service", "SCOPE_credential_creation", "SCOPE_credential_deletion")
+                              .requestMatchers("/csc/v2/credentials/list").hasAnyAuthority("SCOPE_service", "SCOPE_credential", "SCOPE_credential_creation", "SCOPE_credential_deletion")
+                              .requestMatchers("/csc/v2/credentials/create").hasAuthority("SCOPE_credential_creation")
+                              .requestMatchers("/csc/v2/credentials/delete").hasAuthority("SCOPE_credential_deletion")
+                              .anyRequest().denyAll())
+                        .oauth2ResourceServer(oauth2ResourceServer -> oauth2ResourceServer.jwt(Customizer.withDefaults()));
                   return http.build();
             }
       }

@@ -137,6 +137,25 @@ public class CredentialsService {
         return listOfCredentialInfo;
     }
 
+    public CredentialsListResponse.CredentialInfo getSingleCredentialInfo(String credentialId, String certificates, boolean certInfo) throws Exception {
+            Optional<Credentials> optionalCredential = this.credentialsRepository.findById(credentialId);
+            if (optionalCredential.isEmpty())
+                throw new Exception("Couldn't retrieve Credential");
+
+            Credentials credential = optionalCredential.get();
+            CredentialsListResponse.CredentialInfo ci = new CredentialsListResponse.CredentialInfo();
+            ci.setCredentialID(credentialId);
+            ci.setDescription(credential.getDescription());
+            ci.setSignatureQualifier(credential.getSignatureQualifier());
+            ci.setSCAL(credential.getSCAL());
+            ci.setMultisign(credential.getMultisign());
+            ci.setLang(credential.getLang());
+            ci.setKey(getCredentialsKeyInfo(credential));
+            ci.setCert(getCredentialsCertInfo(credential, certificates, certInfo));
+
+            return ci;
+    }
+
     /**
      * Function that allows to get information about the Credential
      * 
@@ -324,7 +343,7 @@ public class CredentialsService {
      * @param name           the full name of the user to be used as CN
      * @param issuingCountry the country to be used in the certificate
      */
-    public void createECDSAP256Credential(String userHash, String givenName, String surname, String name,
+    public String createECDSAP256Credential(String userHash, String givenName, String surname, String name,
             String issuingCountry) throws Exception {
         Credentials credential = new Credentials();
         KeyPairRegister keyValues = this.keysService.generateP256KeyPair();
@@ -366,6 +385,8 @@ public class CredentialsService {
         logger.info("Create Credential Object.");
         this.credentialsRepository.save(credential);
         logger.info("Saved Credential to Database.");
+
+        return credential.getId();
     }
 
     /**

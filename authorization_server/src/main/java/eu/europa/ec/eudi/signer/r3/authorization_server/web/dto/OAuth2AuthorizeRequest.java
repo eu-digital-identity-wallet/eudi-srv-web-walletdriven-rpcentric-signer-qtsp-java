@@ -21,6 +21,8 @@ import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.cons
 import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2AuthorizationDetailsNames;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -57,9 +59,6 @@ public class OAuth2AuthorizeRequest {
     private String description;
     private String account_token;
     private String clientData;
-
-    // New: acr_values for credential-creation scope (1.1.2)
-    private String acr_values;
 
     public void setResponse_type(String response_type) {
         this.response_type = response_type;
@@ -197,14 +196,6 @@ public class OAuth2AuthorizeRequest {
         this.clientData = clientData;
     }
 
-    public String getAcr_values() {
-        return acr_values;
-    }
-
-    public void setAcr_values(String acr_values) {
-        this.acr_values = acr_values;
-    }
-
     @java.lang.Override
     public java.lang.String toString() {
         return "OAuth2AuthorizeRequestDTO{" +
@@ -226,7 +217,6 @@ public class OAuth2AuthorizeRequest {
                 ", description='" + description + '\'' +
                 ", account_token='" + account_token + '\'' +
                 ", clientData='" + clientData + '\'' +
-                ", acr_values='" + acr_values + '\'' +
                 '}';
     }
 
@@ -268,7 +258,6 @@ public class OAuth2AuthorizeRequest {
         authRequest.setDescription(getFirst(parameters, OAuth2CustomParameterNames.DESCRIPTION));
         authRequest.setAccount_token(getFirst(parameters, OAuth2CustomParameterNames.ACCOUNT_TOKEN));
         authRequest.setClientData(getFirst(parameters, OAuth2CustomParameterNames.CLIENT_DATA));
-        authRequest.setAcr_values(getFirst(parameters, OAuth2CustomParameterNames.ACR_VALUES));
         return authRequest;
     }
 
@@ -279,17 +268,19 @@ public class OAuth2AuthorizeRequest {
     private static String resolveScopeFromAuthorizationDetails(String authorizationDetails) {
         try {
             JSONArray arr = new JSONArray(authorizationDetails);
-            if (arr.length() > 0) {
+            if (!arr.isEmpty()) {
                 JSONObject first = arr.getJSONObject(0);
                 if (first.has(OAuth2AuthorizationDetailsNames.TYPE)) {
                     String type = first.getString(OAuth2AuthorizationDetailsNames.TYPE);
-                    return switch (type) {
-                        case OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_CREATION ->
-                            OAuth2ScopesNames.CREDENTIAL_CREATION;
-                        case OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_DELETE ->
-                            OAuth2ScopesNames.CREDENTIAL_DELETE;
-                        default -> OAuth2ScopesNames.CREDENTIAL;
-                    };
+                    if(OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_CREATION.contains(type)){
+                        return OAuth2ScopesNames.CREDENTIAL_CREATION;
+                    }
+                    else if (OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_DELETE.contains(type)){
+                        return OAuth2ScopesNames.CREDENTIAL_DELETION;
+                    }
+                    else {
+                        return OAuth2ScopesNames.CREDENTIAL;
+                    }
                 }
             }
         } catch (Exception ignored) {
@@ -380,12 +371,12 @@ public class OAuth2AuthorizeRequest {
      * Returns true if the first element of the authorization_details JSON array has
      * the given type value.
      */
-    private static boolean isAuthorizationDetailsOfType(String authorizationDetails, String expectedType) {
+    private static boolean isAuthorizationDetailsOfType(String authorizationDetails, List<String> expectedType) {
         try {
             JSONArray arr = new JSONArray(authorizationDetails);
-            if (arr.length() > 0) {
+            if (!arr.isEmpty()) {
                 JSONObject first = arr.getJSONObject(0);
-                return expectedType.equals(first.optString(OAuth2AuthorizationDetailsNames.TYPE));
+                return expectedType.contains(first.optString(OAuth2AuthorizationDetailsNames.TYPE));
             }
         } catch (Exception ignored) {
         }

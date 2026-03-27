@@ -18,8 +18,8 @@ server:
     include-message: always
 
 spring:
-  config:
-   import: file:.env[.properties]
+  #config:
+  # import: file:.env[.properties]
   datasource:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
@@ -58,7 +58,7 @@ auth:
 
 info:
   specs: "2.2.0.0"
-  name: "remote Qualifies Electronic Signature R3 QTSP"
+  name: "remote Qualifies Electronic Signature QTSP"
   logo: "img"
   region: "EU"
   lang: "en-US"
@@ -76,20 +76,16 @@ info:
     - "credentials/delete"
     - "signatures/signHash"
   validationInfo: false
-  supportsRar: false
+  supportsRar: true
   supportedHashTypes:
-    - "S256"  # SHA-256
-    - "S384"  # SHA-384
-    - "S512"  # SHA-512
-  documentTypes:
-    - "application/pdf"
-  oauth2Servers:
-    - label: "QTSP Authorization Server"
-      baseUri: ${AUTHORIZATION_SERVER_ISSUER_URI}
-      issuerIdentifier: ${AUTHORIZATION_SERVER_ISSUER_URI}
-      authType:
-        - "oauth2code"
-      supportsRar: false
+    - "dtbsr"
+  #oauth2Servers:
+  #  - label: "QTSP Authorization Server"
+  #    baseUri: ${AUTHORIZATION_SERVER_ISSUER_URI}
+  #    issuerIdentifier: ${AUTHORIZATION_SERVER_ISSUER_URI}
+  #    authType:
+  #      - "oauth2code"
+  #    supportsRar: false
   signAlgorithms:
     algos:
       - "1.2.840.10045.2.1" # ecdsa or ecPublicKey

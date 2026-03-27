@@ -38,10 +38,10 @@ public class InfoConfig {
     private SignAlgorithms signAlgorithms;
     private Map<String, List<String>> signature_formats;
     private List<String> conformance_levels;
-    private List<OAuth2Server> oauth2Servers;
+    private List<OAuth2Server> oauth2Servers = new ArrayList<>();;
     private Boolean supportsRar;
     private List<String> supportedHashTypes;
-    private List<String> documentTypes;
+    private List<String> documentTypes = new ArrayList<>();
 
     public static class OAuth2Server {
         private String label;

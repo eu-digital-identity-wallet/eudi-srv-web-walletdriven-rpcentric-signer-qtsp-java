@@ -8,4 +8,7 @@ public class JWTCustomClaimNames {
 	public static String HASH_ALGORITHM_OID = "hashAlgorithmOID";
 	public static String NUM_SIGNATURES = "numSignatures";
 	public static String HASHES = "hashes";
+
+	public static String CERTIFICATE_POLICY = "certificatePolicy";
+	public static final String SUBJECT_DATA = "subjectData";
 }

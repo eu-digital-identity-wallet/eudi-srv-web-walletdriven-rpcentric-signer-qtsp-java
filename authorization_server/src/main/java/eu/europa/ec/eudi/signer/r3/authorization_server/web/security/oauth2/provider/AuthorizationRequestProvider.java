@@ -157,7 +157,7 @@ public class AuthorizationRequestProvider implements AuthenticationProvider {
         if (oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL_CREATION)) {
             logger.info("Processing credential_creation authorization request.");
         }
-        if (oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL_DELETE)) {
+        if (oAuth2AuthorizeRequestToken.getScopes().contains(OAuth2ScopesNames.CREDENTIAL_DELETION)) {
             logger.info("Processing credential_delete authorization request.");
         }
 

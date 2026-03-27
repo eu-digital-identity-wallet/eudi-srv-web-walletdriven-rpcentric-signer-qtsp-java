@@ -19,10 +19,12 @@ package eu.europa.ec.eudi.signer.r3.resource_server.web.dto;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import eu.europa.ec.eudi.signer.r3.resource_server.config.InfoConfig;
 
 import jakarta.validation.constraints.NotBlank;
 
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class InfoResponse {
     @NotBlank
     private String specs = "2.2.0.0";

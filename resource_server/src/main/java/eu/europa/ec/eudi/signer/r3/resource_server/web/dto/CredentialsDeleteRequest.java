@@ -17,25 +17,55 @@
 package eu.europa.ec.eudi.signer.r3.resource_server.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public class CredentialsDeleteRequest {
 
-    @NotBlank(message = "Missing required parameter credentialID")
-    @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-             message = "Invalid parameter credentialID")
-    private String credentialID;
+    @NotNull(message = "Missing required parameter credentialDeletionRequest")
+    private CredentialDeletionRequest credentialDeletionRequest;
 
-    private String clientData;
+    public static class CredentialDeletionRequest {
 
-    public String getCredentialID() { return credentialID; }
-    public void setCredentialID(String credentialID) { this.credentialID = credentialID; }
+        @NotBlank(message = "Missing required parameter credentialID")
+        @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+              message = "Invalid parameter credentialID")
+        private String credentialID;
 
-    public String getClientData() { return clientData; }
-    public void setClientData(String clientData) { this.clientData = clientData; }
+        private boolean revoke;
 
-    @Override
-    public String toString() {
-        return "CredentialsDeleteRequest{credentialID='" + credentialID + "', clientData='" + clientData + "'}";
+        private int revocationReason;
+
+        public String getCredentialID() {
+            return credentialID;
+        }
+
+        public void setCredentialID(String credentialID) {
+            this.credentialID = credentialID;
+        }
+
+        public boolean isRevoke() {
+            return revoke;
+        }
+
+        public void setRevoke(boolean revoke) {
+            this.revoke = revoke;
+        }
+
+        public int getRevocationReason() {
+            return revocationReason;
+        }
+
+        public void setRevocationReason(int revocationReason) {
+            this.revocationReason = revocationReason;
+        }
+    }
+
+    public CredentialDeletionRequest getCredentialDeletionRequest() {
+        return credentialDeletionRequest;
+    }
+
+    public void setCredentialDeletionRequest(CredentialDeletionRequest credentialDeletionRequest) {
+        this.credentialDeletionRequest = credentialDeletionRequest;
     }
 }

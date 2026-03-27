@@ -33,8 +33,8 @@ trusted-issuers:
   folder: certificate_of_issuers
 
 spring:
-  config:
-   import: file:.env[.properties]
+  #config:
+  # import: file:.env[.properties]
   datasource:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}

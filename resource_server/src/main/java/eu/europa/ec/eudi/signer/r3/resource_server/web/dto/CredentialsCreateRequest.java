@@ -16,9 +16,11 @@
 
 package eu.europa.ec.eudi.signer.r3.resource_server.web.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.json.JSONObject;
+
+import java.util.List;
 
 public class CredentialsCreateRequest {
 
@@ -28,10 +30,16 @@ public class CredentialsCreateRequest {
      */
     @NotNull(message = "Missing required parameter credentialCreationRequest")
     @Valid
-    @JsonProperty("credentialCreationRequest")
     private CredentialCreationRequest credentialCreationRequest;
 
-    private String clientData;
+    private boolean credentialInfo;
+
+    private String certificates;
+
+    private boolean certInfo;
+
+    private List<JSONObject> authData;
+
 
     public static class CredentialCreationRequest {
         // Required Conditional per CSC DM — may be empty string if not needed
@@ -61,15 +69,45 @@ public class CredentialsCreateRequest {
     }
 
     public CredentialCreationRequest getCredentialCreationRequest() { return credentialCreationRequest; }
+
     public void setCredentialCreationRequest(CredentialCreationRequest credentialCreationRequest) {
         this.credentialCreationRequest = credentialCreationRequest;
     }
 
-    public String getClientData() { return clientData; }
-    public void setClientData(String clientData) { this.clientData = clientData; }
+    public boolean getCredentialInfo() {
+        return credentialInfo;
+    }
+
+    public void setCredentialInfo(boolean credentialInfo) {
+        this.credentialInfo = credentialInfo;
+    }
+
+    public String getCertificates() {
+        return certificates;
+    }
+
+    public void setCertificates(String certificates) {
+        this.certificates = certificates;
+    }
+
+    public boolean getCertInfo() {
+        return certInfo;
+    }
+
+    public void setCertInfo(boolean certInfo) {
+        this.certInfo = certInfo;
+    }
+
+    public List<JSONObject> getAuthData() {
+        return authData;
+    }
+
+    public void setAuthData(List<JSONObject> authData) {
+        this.authData = authData;
+    }
 
     @Override
     public String toString() {
-        return "CredentialsCreateRequest{credentialCreationRequest=" + credentialCreationRequest + ", clientData='" + clientData + "'}";
+        return "CredentialsCreateRequest{credentialCreationRequest=" + credentialCreationRequest + "'}";
     }
 }

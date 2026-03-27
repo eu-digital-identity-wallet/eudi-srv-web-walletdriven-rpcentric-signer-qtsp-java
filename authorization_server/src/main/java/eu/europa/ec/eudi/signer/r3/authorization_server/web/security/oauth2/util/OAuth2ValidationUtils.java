@@ -172,18 +172,15 @@ public class OAuth2ValidationUtils {
 							token);
 
 				String type = ad.getString(OAuth2AuthorizationDetailsNames.TYPE);
-				switch (type) {
-					case OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL ->
-						validateCredentialAuthorizationDetails(logger, ad, token);
-					case OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_CREATION ->
-						validateCredentialCreationAuthorizationDetails(logger, ad, token);
-					case OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_DELETE ->
-						validateCredentialDeleteAuthorizationDetails(logger, ad, token);
-					default -> throw new OAuth2AuthorizationCodeRequestAuthenticationException(
-							getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
-									"The 'type' in the 'authorization_details' parameter is invalid: " + type),
-							token);
-				}
+				if(OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL.contains(type))
+					validateCredentialAuthorizationDetails(logger, ad, token);
+				else if(OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_CREATION.contains(type))
+					validateCredentialCreationAuthorizationDetails(logger, ad, token);
+				else if(OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_DELETE.contains(type))
+					validateCredentialDeleteAuthorizationDetails(logger, ad, token);
+				else throw new OAuth2AuthorizationCodeRequestAuthenticationException(
+					  getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,"The 'type' in the 'authorization_details' parameter is invalid: " + type),
+						  token);
 			}
 		} catch (JSONException e) {
 			logger.error("Error {}.", e.getMessage());
@@ -251,8 +248,7 @@ public class OAuth2ValidationUtils {
 	private static void validateCredentialCreationAuthorizationDetails(Logger logger, JSONObject ad,
 			OAuth2AuthorizationCodeRequestAuthenticationToken token) {
 		if (!ad.has(OAuth2AuthorizationDetailsNames.CREDENTIAL_CREATION_REQUEST)) {
-			throw new OAuth2AuthorizationCodeRequestAuthenticationException(
-					getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
+			throw new OAuth2AuthorizationCodeRequestAuthenticationException(getOAuth2Error(logger, OAuth2ErrorCodes.INVALID_REQUEST,
 							"The 'credentialCreationRequest' in the 'authorization_details' parameter is missing."),
 					token);
 		}

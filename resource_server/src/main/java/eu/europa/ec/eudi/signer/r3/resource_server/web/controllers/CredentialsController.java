@@ -26,7 +26,6 @@ import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsListRespon
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsInfoRequest;
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsInfoResponse;
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsCreateRequest;
-import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsCreateResponse;
 import eu.europa.ec.eudi.signer.r3.resource_server.web.dto.CredentialsDeleteRequest;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -200,7 +200,7 @@ public class CredentialsController {
      * @return a json response containing the new credentialID
      */
     @PostMapping(value = "/create", consumes = "application/json", produces = "application/json")
-    public CredentialsCreateResponse create(@Valid @RequestBody CredentialsCreateRequest createRequestDTO) {
+    public ResponseEntity<?> create(@Valid @RequestBody CredentialsCreateRequest createRequestDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication.getPrincipal();
         Map<String, Object> claims = ((Jwt) principal).getClaims();
@@ -218,24 +218,20 @@ public class CredentialsController {
         String surname;
         String issuingCountry;
 
-        CredentialsCreateRequest.SubjectData subjectData = createRequestDTO.getCredentialCreationRequest()
-                .getSubjectData();
+        CredentialsCreateRequest.SubjectData subjectData = createRequestDTO.getCredentialCreationRequest().getSubjectData();
         if (subjectData != null && subjectData.getGivenName() != null && subjectData.getSurname() != null) {
             givenName = subjectData.getGivenName();
             surname = subjectData.getSurname();
             issuingCountry = subjectData.getIssuingCountry() != null ? subjectData.getIssuingCountry() : "EU";
             logger.info("Using subjectData from request: {} {}", givenName, surname);
-        } else if (claims.containsKey(JWTCustomClaimNames.GIVEN_NAME) &&
-                claims.containsKey(JWTCustomClaimNames.SURNAME) &&
-                claims.containsKey(JWTCustomClaimNames.ISSUING_COUNTRY)) {
+        } else if (claims.containsKey(JWTCustomClaimNames.GIVEN_NAME) && claims.containsKey(JWTCustomClaimNames.SURNAME) && claims.containsKey(JWTCustomClaimNames.ISSUING_COUNTRY)) {
             try {
                 givenName = this.cryptoUtils.decryptString(claims.get(JWTCustomClaimNames.GIVEN_NAME).toString());
                 surname = this.cryptoUtils.decryptString(claims.get(JWTCustomClaimNames.SURNAME).toString());
                 issuingCountry = claims.get(JWTCustomClaimNames.ISSUING_COUNTRY).toString();
             } catch (Exception e) {
                 logger.error("Failed to decrypt identity claims: {}", e.getMessage());
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "invalid_request: Could not resolve subject identity.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_request: Could not resolve subject identity.");
             }
             logger.info("Using identity claims from JWT: {} {}", givenName, surname);
         } else {
@@ -245,15 +241,18 @@ public class CredentialsController {
         }
 
         try {
-            this.credentialsService.createECDSAP256Credential(userHash, givenName, surname,
+            String credentialId = this.credentialsService.createECDSAP256Credential(userHash, givenName, surname,
                     givenName + " " + surname, issuingCountry);
             logger.info("Created new ECDSA P256 credential for user {}", userHash);
 
-            // Return the ID of the newly created credential (last one for this user)
-            List<String> ids = credentialsService.getAvailableCredentialsID(userHash, false);
-            String newCredentialId = ids.get(ids.size() - 1);
-            logger.info("New credentialID: {}", newCredentialId);
-            return new CredentialsCreateResponse(newCredentialId);
+            if (createRequestDTO.getCredentialInfo()){
+                CredentialsListResponse.CredentialInfo ci = credentialsService.getSingleCredentialInfo(
+                      credentialId, createRequestDTO.getCertificates(), createRequestDTO.getCertInfo());
+                return ResponseEntity.status(HttpStatus.CREATED).body(ci);
+            }
+            else {
+                return ResponseEntity.status(HttpStatus.CREATED).build();
+            }
         } catch (Exception e) {
             logger.error("Failed to create credential: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_request: Failed to create credential.");
@@ -267,7 +266,7 @@ public class CredentialsController {
      * @param deleteRequestDTO the body of the Http Request
      */
     @PostMapping(value = "/delete", consumes = "application/json", produces = "application/json")
-    public void delete(@Valid @RequestBody CredentialsDeleteRequest deleteRequestDTO) {
+    public ResponseEntity<?> delete(@Valid @RequestBody CredentialsDeleteRequest deleteRequestDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication.getPrincipal();
         Map<String, Object> claims = ((Jwt) principal).getClaims();
@@ -275,21 +274,28 @@ public class CredentialsController {
             auxDebugLogs(claims);
 
         String userHash = claims.get("sub").toString();
-        logger.info("Request received at /csc/v2/credentials/delete with body {} from user {}",
-                deleteRequestDTO.toString(), userHash);
+        logger.info("Request received at /csc/v2/credentials/delete with body {} from user {}", deleteRequestDTO.toString(), userHash);
         if (userHash == null)
             userMissingError();
 
-        if (!credentialsService.credentialBelongsToUser(userHash, deleteRequestDTO.getCredentialID())) {
-            logger.error("Invalid Request: credentialID {} does not belong to user {}",
-                    deleteRequestDTO.getCredentialID(), userHash);
+        String credentialId = deleteRequestDTO.getCredentialDeletionRequest().getCredentialID();
+        String credentialIdAuthorized = claims.get(JWTCustomClaimNames.CREDENTIAL_ID).toString();
+        if (!credentialIdAuthorized.equals(credentialId)) {
+            logger.error("Invalid Request: credentialID {} deletion was not authorized previously. (Authorized {} != Requested {})",
+                  credentialId, credentialIdAuthorized, credentialId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "invalid_request: Invalid parameter credentialID.");
+                  "invalid_request: Invalid parameter credentialID.");
+        }
+
+        if (!credentialsService.credentialBelongsToUser(userHash, credentialId)) {
+            logger.error("Invalid Request: credentialID {} does not belong to user {}", credentialId, userHash);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_request: Invalid parameter credentialID.");
         }
 
         try {
-            credentialsService.deleteCredential(deleteRequestDTO.getCredentialID());
-            logger.info("Deleted credential {} for user {}", deleteRequestDTO.getCredentialID(), userHash);
+            credentialsService.deleteCredential(credentialId);
+            logger.info("Deleted credential {} for user {}", credentialId, userHash);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (Exception e) {
             logger.error("Failed to delete credential: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_request: Failed to delete credential.");

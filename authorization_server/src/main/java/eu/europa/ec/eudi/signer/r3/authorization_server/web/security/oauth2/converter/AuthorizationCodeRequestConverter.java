@@ -101,7 +101,6 @@ public class AuthorizationCodeRequestConverter implements AuthenticationConverte
     public Authentication convert(HttpServletRequest request) {
         logger.info("Request received at {}", request.getRequestURL().toString());
         logger.info(request.getQueryString());
-
         if (!this.authenticationServiceRequestMatcher.matches(request) &&
                 !this.authorizationCredentialRequestMatcher.matches(request) &&
                 !this.authorizationCredentialCreationRequestMatcher.matches(request) &&
@@ -180,8 +179,7 @@ public class AuthorizationCodeRequestConverter implements AuthenticationConverte
 
         // if the request is of the scope "service" and the session does not contain the
         // scope "service", the authentication is invalid...
-        if (scopes.contains(OAuth2ScopesNames.SERVICE)
-                && !Objects.equals(token.getScope(), OAuth2ScopesNames.SERVICE)) {
+        if (scopes.contains(OAuth2ScopesNames.SERVICE) && !Objects.equals(token.getScope(), OAuth2ScopesNames.SERVICE)) {
             principal = ANONYMOUS_AUTHENTICATION;
             SecurityContextHolder.clearContext();
             logger.warn("{}: Request Scope = 'service' && Token Request Scope != 'service'", type);
@@ -195,8 +193,7 @@ public class AuthorizationCodeRequestConverter implements AuthenticationConverte
         }
         // if the request is of the scope "credential" and the session does not contain
         // the scope "credential", the authentication is invalid...
-        else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL)
-                && !Objects.equals(token.getScope(), OAuth2ScopesNames.CREDENTIAL)) {
+        else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL) && !Objects.equals(token.getScope(), OAuth2ScopesNames.CREDENTIAL)) {
             logger.warn("{}: Request Scope = 'credential' && Token Request Scope != 'credential'", type);
             principal = ANONYMOUS_AUTHENTICATION;
             SecurityContextHolder.clearContext();
@@ -205,31 +202,24 @@ public class AuthorizationCodeRequestConverter implements AuthenticationConverte
         // doesn't match the "authorized information", the authentication is invalid...
         else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL) && isInvalidCredential) {
             logger.warn("{}: Credential Validation Failed.", type);
-            logger.warn("Authorization Details? {}",
-                    Objects.equals(authorizeRequest.getAuthorization_details(), token.getAuthorization_details()));
+            logger.warn("Authorization Details? {}", Objects.equals(authorizeRequest.getAuthorization_details(), token.getAuthorization_details()));
             logger.warn("Hashes? {}", Objects.equals(authorizeRequest.getHashes(), token.getHashDocument()));
-            logger.warn("CredentialID? {}",
-                    Objects.equals(authorizeRequest.getCredentialID(), token.getCredentialID()));
-            logger.warn("HashAlgorithmOID? {}",
-                    Objects.equals(authorizeRequest.getHashAlgorithmOID(), token.getHashAlgorithmOID()));
-            logger.warn("NumSignatures? {}",
-                    Objects.equals(authorizeRequest.getNumSignatures(), token.getNumSignatures()));
+            logger.warn("CredentialID? {}", Objects.equals(authorizeRequest.getCredentialID(), token.getCredentialID()));
+            logger.warn("HashAlgorithmOID? {}", Objects.equals(authorizeRequest.getHashAlgorithmOID(), token.getHashAlgorithmOID()));
+            logger.warn("NumSignatures? {}", Objects.equals(authorizeRequest.getNumSignatures(), token.getNumSignatures()));
             principal = ANONYMOUS_AUTHENTICATION;
             SecurityContextHolder.clearContext();
         }
         // if the request is of the scope "credential_creation" and the session does not
         // contain that scope, the authentication is invalid...
-        else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL_CREATION)
-                && !Objects.equals(token.getScope(), OAuth2ScopesNames.CREDENTIAL_CREATION)) {
-            logger.warn("{}: Request Scope = 'credential_creation' && Token Request Scope != 'credential_creation'",
-                    type);
+        else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL_CREATION) && !Objects.equals(token.getScope(), OAuth2ScopesNames.CREDENTIAL_CREATION)) {
+            logger.warn("{}: Request Scope = 'credential_creation' && Token Request Scope != 'credential_creation'", type);
             principal = ANONYMOUS_AUTHENTICATION;
             SecurityContextHolder.clearContext();
         }
         // if the request is of the scope "credential_delete" and the session does not
         // contain that scope, the authentication is invalid...
-        else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL_DELETE)
-                && !Objects.equals(token.getScope(), OAuth2ScopesNames.CREDENTIAL_DELETE)) {
+        else if (scopes.contains(OAuth2ScopesNames.CREDENTIAL_DELETION) && !Objects.equals(token.getScope(), OAuth2ScopesNames.CREDENTIAL_DELETION)) {
             logger.warn("{}: Request Scope = 'credential_delete' && Token Request Scope != 'credential_delete'", type);
             principal = ANONYMOUS_AUTHENTICATION;
             SecurityContextHolder.clearContext();

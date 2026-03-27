@@ -328,9 +328,20 @@ public class AuthorizationServerConfig {
 					addUserClaims(token, claims, userRepository);
 				}
 			}
-
 			if (authorization.getAuthorizedScopes().contains(OAuth2ScopesNames.CREDENTIAL)) {
 				addCredentialClaims(claims, authorization);
+			}
+			if (authorization.getAuthorizedScopes().contains(OAuth2ScopesNames.CREDENTIAL_CREATION)) {
+				if(context.getPrincipal().getClass().equals(OID4VPAuthenticationToken.class) || context.getPrincipal().getClass().equals(UsernamePasswordAuthenticationToken.class) || context.getPrincipal().getClass().equals(UsernamePasswordAuthenticationTokenExtended.class)){
+					Authentication token = context.getPrincipal();
+					addCreationCredentialClaims(token, claims, userRepository, authorization);
+				}
+			}
+			if (authorization.getAuthorizedScopes().contains(OAuth2ScopesNames.CREDENTIAL_DELETION)) {
+				if(context.getPrincipal().getClass().equals(OID4VPAuthenticationToken.class) || context.getPrincipal().getClass().equals(UsernamePasswordAuthenticationToken.class) || context.getPrincipal().getClass().equals(UsernamePasswordAuthenticationTokenExtended.class)){
+					Authentication token = context.getPrincipal();
+					addDeletionCredentialClaims(token, claims, authorization);
+				}
 			}
 		};
 	}
@@ -373,6 +384,57 @@ public class AuthorizationServerConfig {
 
 			claims.claim(JWTCustomClaimNames.HASHES, String.join(",", base64EncodedHashes));
 			claims.claim(JWTCustomClaimNames.HASH_ALGORITHM_OID, params.get(OAuth2CustomParameterNames.HASH_ALGORITHM_OID).toString());
+		}
+	}
+
+	private void addCreationCredentialClaims(Authentication token, JwtClaimsSet.Builder claims, UserRepository userRepository, OAuth2Authorization authorization) {
+		if(token.getPrincipal().getClass().equals(UserPrincipal.class)) {
+			UserPrincipal up = (UserPrincipal) token.getPrincipal();
+			claims.claim(JWTCustomClaimNames.GIVEN_NAME, this.cryptoUtils.encryptString(up.getGivenName()));
+			claims.claim(JWTCustomClaimNames.SURNAME, this.cryptoUtils.encryptString(up.getSurname()));
+			User u = userRepository.findByHash(up.getUsername()).orElseThrow();
+			claims.claim(JWTCustomClaimNames.ISSUING_COUNTRY, u.getIssuingCountry());
+		}
+
+		OAuth2AuthorizationRequest request = authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
+		if (request == null) return;
+		Map<String, Object> params = request.getAdditionalParameters();
+		if (params.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS) != null) {
+			JSONObject authDetailsJSON = new JSONArray(params.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS).toString()).getJSONObject(0);
+
+			if(authDetailsJSON.has(OAuth2AuthorizationDetailsNames.ACR_VALUES)) {
+				JSONArray acr_values = authDetailsJSON.getJSONArray(OAuth2AuthorizationDetailsNames.ACR_VALUES);
+			}
+
+			if(authDetailsJSON.has(OAuth2AuthorizationDetailsNames.CREDENTIAL_CREATION_REQUEST)) {
+				JSONObject credentialCreationRequest = authDetailsJSON.getJSONObject(OAuth2AuthorizationDetailsNames.CREDENTIAL_CREATION_REQUEST);
+				if (credentialCreationRequest.has(OAuth2AuthorizationDetailsNames.CERTIFICATE_POLICY)) {
+					String certificatePolicy = credentialCreationRequest.getString(OAuth2AuthorizationDetailsNames.CERTIFICATE_POLICY);
+					claims.claim(JWTCustomClaimNames.CERTIFICATE_POLICY, certificatePolicy);
+				}
+				if (credentialCreationRequest.has(OAuth2AuthorizationDetailsNames.SUBJECT_DATA)) {
+					String subjectData = credentialCreationRequest.getString(OAuth2AuthorizationDetailsNames.SUBJECT_DATA);
+					claims.claim(JWTCustomClaimNames.SUBJECT_DATA, subjectData);
+				}
+			}
+		}
+	}
+
+	private void addDeletionCredentialClaims(Authentication token, JwtClaimsSet.Builder claims, OAuth2Authorization authorization) {
+		if(token.getPrincipal().getClass().equals(UserPrincipal.class)) {
+			UserPrincipal up = (UserPrincipal) token.getPrincipal();
+			claims.claim(JWTCustomClaimNames.GIVEN_NAME, this.cryptoUtils.encryptString(up.getGivenName()));
+			claims.claim(JWTCustomClaimNames.SURNAME, this.cryptoUtils.encryptString(up.getSurname()));
+		}
+
+		OAuth2AuthorizationRequest request = authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
+		if (request == null) return;
+		Map<String, Object> params = request.getAdditionalParameters();
+		if (params.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS) != null) {
+			JSONObject authDetailsJSON = new JSONArray(params.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS).toString()).getJSONObject(0);
+
+			String credentialId = authDetailsJSON.getString(OAuth2AuthorizationDetailsNames.CREDENTIAL_ID);
+			claims.claim(JWTCustomClaimNames.CREDENTIAL_ID, credentialId);
 		}
 	}
 

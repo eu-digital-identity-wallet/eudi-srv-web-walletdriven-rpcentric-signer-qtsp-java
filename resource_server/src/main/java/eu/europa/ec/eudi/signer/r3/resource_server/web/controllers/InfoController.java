@@ -52,7 +52,6 @@ public class InfoController {
         log.trace("Receive request @/csc/v2/info with lang value: {}.", lang);
 
         List<String> keySet = this.infoProperties.getSignature_formats().keySet().stream().toList();
-        ;
 
         List<List<String>> envelope_properties = new ArrayList<>();
         for (String o : keySet) {
@@ -71,7 +70,7 @@ public class InfoController {
                 this.infoProperties.getSignAlgorithms(),
                 keySet, envelope_properties, this.infoProperties.getConformance_levels());
 
-        response.setOauth2Servers(this.infoProperties.getOauth2Servers());
+        // response.setOauth2Servers(this.infoProperties.getOauth2Servers());
         response.setSupportsRar(this.infoProperties.getSupportsRar());
         response.setSupportedHashTypes(this.infoProperties.getSupportedHashTypes());
         response.setDocumentTypes(this.infoProperties.getDocumentTypes());
