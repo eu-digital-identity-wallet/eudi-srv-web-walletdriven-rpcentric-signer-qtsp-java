@@ -16,8 +16,11 @@
 
 package eu.europa.ec.eudi.signer.r3.authorization_server.web.security.token;
 
+import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2AuthorizationDetailsNames;
 import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2CustomParameterNames;
 import eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.constants.OAuth2ScopesNames;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.stereotype.Service;
 
@@ -85,9 +88,17 @@ public class CommonTokenSetting {
 
 	public String getScopeFromOAuth2Request(Map<String, String> queryPairs) {
 		String scope = queryPairs.get(OAuth2ParameterNames.SCOPE);
-		if(scope == null && queryPairs.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS) != null)
-			scope = OAuth2ScopesNames.CREDENTIAL;
-
+		if(scope == null && queryPairs.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS) != null){
+			String authorizationDetails = queryPairs.get(OAuth2CustomParameterNames.AUTHORIZATION_DETAILS);
+			JSONArray authorizationDetailsJson = new JSONArray(authorizationDetails);
+			JSONObject firstAuthorizationDetail = authorizationDetailsJson.getJSONObject(0);
+			String type = firstAuthorizationDetail.getString(OAuth2AuthorizationDetailsNames.TYPE);
+			if(OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_CREATION.contains(type))
+				scope = OAuth2ScopesNames.CREDENTIAL_CREATION;
+			else if (OAuth2AuthorizationDetailsNames.TYPE_CREDENTIAL_DELETE.contains(type))
+				scope = OAuth2ScopesNames.CREDENTIAL_DELETION;
+			else scope = OAuth2ScopesNames.CREDENTIAL;
+		}
 		return scope;
 	}
 

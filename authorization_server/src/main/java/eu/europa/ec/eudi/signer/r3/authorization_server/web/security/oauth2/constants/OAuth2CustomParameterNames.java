@@ -2,7 +2,7 @@ package eu.europa.ec.eudi.signer.r3.authorization_server.web.security.oauth2.con
 
 public final class OAuth2CustomParameterNames {
 
-	private OAuth2CustomParameterNames(){}
+	private OAuth2CustomParameterNames() {}
 
 	public static final String AUTHORIZATION_DETAILS = "authorization_details";
 	public static final String CLIENT_DATA = "clientData";

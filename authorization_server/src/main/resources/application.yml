@@ -34,7 +34,7 @@ trusted-issuers:
 
 spring:
   #config:
-  #  import: file:.env[.properties]
+  # import: file:.env[.properties]
   datasource:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
