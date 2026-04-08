@@ -1,12 +1,13 @@
 # Changelog
 
 ## [0.5.0]
-_X Mar 2026_
+_8 Apr 2026_
 
 ### Added
 - Additional logging and debug messages to aid troubleshooting.
 
 ### Changed
+- Upgraded Cloud Signature Consortium (CSC) API from v2.0 to v2.2.
 - Minor improvements to the deployment bash script.
 - Updated OID4VP-related code to support OpenID4VP v1.
 - Updated OID4VP configuration: the wallet scheme and verifier domain are now configurable via environment variables.
