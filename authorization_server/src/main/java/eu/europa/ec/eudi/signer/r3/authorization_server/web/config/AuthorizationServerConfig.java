@@ -190,9 +190,10 @@ public class AuthorizationServerConfig {
 	@Bean
 	public CommonsRequestLoggingFilter logFilter() {
 		CommonsRequestLoggingFilter filter = new CommonsRequestLoggingFilter();
-		filter.setIncludePayload(true);      // This is the "magic" switch
-		filter.setMaxPayloadLength(10000);   // Limit characters captured
-		filter.setIncludeHeaders(false);     // Change to true if you need Auth headers
+		// added logs of the requests received in the AS endpoints
+		filter.setIncludePayload(true);
+		filter.setMaxPayloadLength(10000);
+		filter.setIncludeHeaders(false);
 		filter.setAfterMessagePrefix("REQUEST DATA : ");
 		return filter;
 	}
@@ -205,7 +206,6 @@ public class AuthorizationServerConfig {
 		filter.setIncludeQueryString(true);
 
 		FilterRegistrationBean<CommonsRequestLoggingFilter> registration = new FilterRegistrationBean<>(filter);
-		// This moves it BEFORE the Spring Security Filter Chain
 		registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
 		return registration;
 	}
