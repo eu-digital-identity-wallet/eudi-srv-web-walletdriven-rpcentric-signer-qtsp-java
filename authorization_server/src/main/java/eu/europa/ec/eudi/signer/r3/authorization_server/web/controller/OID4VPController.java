@@ -75,6 +75,14 @@ public class OID4VPController {
 				model.addAttribute("resources", "your list of certificates and, " +
 					  "if no certificate exists, you will grant access to issue a new certificate and a new key pair");
 			}
+			else if (scope.equals(OAuth2ScopesNames.CREDENTIAL_CREATION)){
+				model.addAttribute("reason", "create a new certificate.");
+				model.addAttribute("resources", "create a new certificate and signing key pair.");
+			}
+			else if(scope.equals(OAuth2ScopesNames.CREDENTIAL_DELETION)){
+				model.addAttribute("reason", "delete a certificate.");
+				model.addAttribute("resources", "delete a certificate from your list of certificates.");
+			}
 
 			return "cross-device-page";
 		}catch (Exception e){
