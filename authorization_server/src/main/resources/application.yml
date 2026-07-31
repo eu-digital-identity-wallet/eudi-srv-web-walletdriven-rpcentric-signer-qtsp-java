@@ -22,6 +22,8 @@ oid4vp:
     domain: ${VERIFIER-DOMAIN}
     presentation-url: https://${VERIFIER-DOMAIN}/ui/presentations
     validation-url: https://${VERIFIER-DOMAIN}/utilities/validations/msoMdoc/deviceResponse
+    intended_use_id: ${INTENDED-USE-ID:}
+    registration_certificate_Jwt: ${REGISTRATION-CERTIFICATE-JWT:}
   wallet:
     scheme: ${WALLET-SCHEME}
 
