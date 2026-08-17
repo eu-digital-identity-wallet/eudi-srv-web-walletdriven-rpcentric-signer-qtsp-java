@@ -174,6 +174,8 @@ public class VerifierClient {
         if(isCrossDevice) bodyMessage = getCrossDeviceMessage(nonce);
         else bodyMessage = getSameDeviceMessage(userId, serviceUrl, nonce);
 
+        log.info(bodyMessage);
+
         // makes a request to the verifier
         HttpResponse response;
         try {
@@ -264,29 +266,30 @@ public class VerifierClient {
         return new JSONObject(dcqlQuery);
     }
 
-    private String getSameDeviceMessage(String userId, String serviceUrl, String nonce) {
+    private JSONObject getCommonStructureMessage(String nonce) {
         JSONObject dcqlQueryJSON = getDCQLQueryJSON();
 
-        String redirectUri = serviceUrl+"/oid4vp/callback?session_id="+userId+"&response_code={RESPONSE_CODE}";
-
-        // Set JSON Body
         JSONObject jsonBodyToInitPresentation = new JSONObject();
         jsonBodyToInitPresentation.put("type", "vp_token");
         jsonBodyToInitPresentation.put("nonce", nonce);
         jsonBodyToInitPresentation.put("dcql_query", dcqlQueryJSON);
+        String registrationCertificate = oid4VPConfig.getVerifier().getRegistrationCertificateJwt();
+        if(registrationCertificate != null && !registrationCertificate.isBlank())
+            jsonBodyToInitPresentation.put("registration_certificate", registrationCertificate);
+        else
+            jsonBodyToInitPresentation.put("intended_use_id", oid4VPConfig.getVerifier().getIntendedUseId());
+        return jsonBodyToInitPresentation;
+    }
+
+    private String getSameDeviceMessage(String userId, String serviceUrl, String nonce) {
+        JSONObject jsonBodyToInitPresentation = getCommonStructureMessage(nonce);
+        String redirectUri = serviceUrl+"/oid4vp/callback?session_id="+userId+"&response_code={RESPONSE_CODE}";
         jsonBodyToInitPresentation.put("wallet_response_redirect_uri_template", redirectUri);
         return jsonBodyToInitPresentation.toString();
     }
 
     private String getCrossDeviceMessage(String nonce) {
-        JSONObject dcqlQueryJSON = getDCQLQueryJSON();
-
-        // Set JSON Body
-        JSONObject jsonBodyToInitPresentation = new JSONObject();
-        jsonBodyToInitPresentation.put("type", "vp_token");
-        jsonBodyToInitPresentation.put("nonce", nonce);
-        jsonBodyToInitPresentation.put("dcql_query", dcqlQueryJSON);
-        return jsonBodyToInitPresentation.toString();
+        return getCommonStructureMessage(nonce).toString();
     }
 
     private String getLinkToWallet(String request_uri, String client_id) {
