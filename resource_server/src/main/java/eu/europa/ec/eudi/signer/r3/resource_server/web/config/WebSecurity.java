@@ -44,6 +44,7 @@ import eu.europa.ec.eudi.signer.r3.resource_server.model.keys.LocalKeysService;
 import eu.europa.ec.eudi.signer.r3.resource_server.model.keys.hsm.HsmService;
 
 @EnableWebSecurity
+@Configuration(proxyBeanMethods = false)
 public class WebSecurity {
     private static final Logger logger = LoggerFactory.getLogger(WebSecurity.class);
 
@@ -63,10 +64,10 @@ public class WebSecurity {
                     .requestMatchers("/v3/api-docs/**").permitAll()
                     .requestMatchers("/csc/v2/info").permitAll()
                     .requestMatchers("/csc/v2/signatures/signHash").hasAuthority("SCOPE_credential")
-                    .requestMatchers("/csc/v2/credentials/info").hasAnyAuthority("SCOPE_credential", "SCOPE_service", "SCOPE_credential_creation", "SCOPE_credential_deletion")
-                    .requestMatchers("/csc/v2/credentials/list").hasAnyAuthority("SCOPE_service", "SCOPE_credential", "SCOPE_credential_creation", "SCOPE_credential_deletion")
-                    .requestMatchers("/csc/v2/credentials/create").hasAuthority("SCOPE_credential_creation")
-                    .requestMatchers("/csc/v2/credentials/delete").hasAuthority("SCOPE_credential_deletion")
+                    .requestMatchers("/csc/v2/credentials/info").hasAnyAuthority("SCOPE_credential", "SCOPE_service", "SCOPE_credential-creation", "SCOPE_credential-deletion")
+                    .requestMatchers("/csc/v2/credentials/list").hasAnyAuthority("SCOPE_service", "SCOPE_credential", "SCOPE_credential-creation", "SCOPE_credential-deletion")
+                    .requestMatchers("/csc/v2/credentials/create").hasAuthority("SCOPE_credential-creation")
+                    .requestMatchers("/csc/v2/credentials/delete").hasAuthority("SCOPE_credential-deletion")
                     .anyRequest().denyAll())
                 	.oauth2ResourceServer(oauth2ResourceServer -> oauth2ResourceServer.jwt(Customizer.withDefaults()));
             return http.build();
