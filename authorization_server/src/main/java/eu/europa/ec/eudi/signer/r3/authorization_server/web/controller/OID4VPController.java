@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -53,8 +52,7 @@ public class OID4VPController {
 		try {
 			String serviceUrl = this.issuerConfig.getServiceURL();
 			String urlToReturnTo = sessionInformation.getUrlToReturnTo();
-
-			String redirectLink = this.openIdForVPService.getCrossDeviceRedirectLink(urlToReturnTo, sanitizeCookie, serviceUrl);
+			String redirectLink = sessionInformation.getWalletLink();		
 
 			QRCodeWriter barcodeWriter = new QRCodeWriter();
 			BitMatrix bitMatrix = barcodeWriter.encode(redirectLink, BarcodeFormat.QR_CODE, 200, 200);
@@ -101,7 +99,7 @@ public class OID4VPController {
 
 
 	@GetMapping("/oid4vp/same-device")
-	public String getOID4VPSameDevicePage(Model model, @CookieValue(name = "JSESSIONID", required = false) String sessionId){
+	public String getOID4VPSameDevicePage(Model model, @RequestParam String sessionId) {
 		if (sessionId == null) {
 			logger.error("No session cookie present in the same-device request.");
 			model.addAttribute(ERROR_MESSAGE_ATTRIBUTE, NO_ACTIVE_SESSION_MESSAGE);

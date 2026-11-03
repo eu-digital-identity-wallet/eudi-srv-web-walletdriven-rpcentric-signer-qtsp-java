@@ -69,7 +69,7 @@ public class OID4VPSameDeviceAuthenticationEntryPoint implements AuthenticationE
             String walletLink = this.openIdForVPService.getSameDeviceRedirectLink(returnTo, sanitizeCookieString, serviceUrl);
             this.sessionUrlRelationList.addSessionReturnToUrlAndWalletLink(sanitizeCookieString, returnTo, walletLink);
 
-            String linkToSameDevicePage = serviceUrl + "/oid4vp/same-device";
+            String linkToSameDevicePage = serviceUrl + "/oid4vp/same-device?sessionId="+sanitizeCookieString;
             this.redirectStrategy.sendRedirect(request, response, linkToSameDevicePage);
         } catch (Exception e) {
             logger.error(e.getMessage());
