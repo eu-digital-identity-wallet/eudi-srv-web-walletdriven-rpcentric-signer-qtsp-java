@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.2]
+_29 Oct 2026_
+
+### Changed
+- Mounted the `logs` directory as a volume in the `docker-compose.yml` services, so log files persist on the host.
+
+### Fixed
+- Fixed Issue#43: "/oauth2/authorize returns HTTP 500 for credential authorization_details requests without scope".
+- Fixed `/csc/v2/info` returning HTTP 400 when the request body is missing; the body is now optional.
+- Fixed key objects being left in the HSM session after key pair generation and signing.
+
+
 ## [0.7.1]
 _21 Oct 2026_
 
